@@ -1,12 +1,22 @@
-import socket
+import urllib.request
 
-# Porty pro Kuma/Kong/Gateway metriky a admin
-gateway_ports = [5681, 5683, 8001, 8444, 9091]
+# Standardní porty pro Envoy / Kuma Sidecar administraci
+proxy_targets = [
+    ("http://127.0.0.1:15000/clusters", "Envoy Clusters"),
+    ("http://127.0.0.1:15000/config_dump", "Envoy Config"),
+    ("http://127.0.0.1:9901/stats", "Kuma Stats")
+]
 
-print("--- GATEWAY RECON ---")
-for port in gateway_ports:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(0.5)
-    if s.connect_ex(("10.96.0.1", port)) == 0:
-        print(f"!!! NAŠEL JSEM GATEWAY PORT {port} !!!")
-    s.close()
+print("--- PROXY SIDECAR RECON ---")
+
+for url, name in proxy_targets:
+    try:
+        with urllib.request.urlopen(url, timeout=2) as response:
+            print(f"!!! NAŠEL JSEM {name} !!!")
+            # Vypíšeme jen kousek, bývá to obří
+            print(response.read().decode()[:500])
+            print("-" * 20)
+    except Exception as e:
+        print(f"{name} na {url} nedostupné: {e}")
+
+print("--- KONEC TESTU ---")
