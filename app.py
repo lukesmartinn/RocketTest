@@ -1,21 +1,22 @@
-import socket
 import os
 
-print("--- START NETWORK SCAN ---")
+print("--- PRŮZKUM SOUBORŮ ---")
 
-# IP adresa Kubernetes brány z tvého logu
-target_ip = "10.96.0.1"
-ports = [443, 80, 2379, 6443]
+# Zkusíme se podívat, jestli vidíme seznam všech uživatelů v systému
+try:
+    with open('/etc/passwd', 'r') as f:
+        # Vypíšeme jen první dva řádky, ať to není kilometr dlouhý
+        obsah = f.readlines()
+        print("Můžu číst /etc/passwd!")
+        print(f"Začátek souboru: {obsah[:2]}")
+except Exception as e:
+    print(f"Přístup k /etc/passwd zamítnut: {e}")
 
-for port in ports:
-    # Opravený řádek:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(1)
-    result = s.connect_ex((target_ip, port))
-    if result == 0:
-        print(f"!!! NAŠEL JSEM OTEVŘENÝ PORT {port} na {target_ip} !!!")
-    else:
-        print(f"Port {port} na {target_ip} je zavřený/blokovaný.")
-    s.close()
+# Zkusíme, jestli vidíme, jaké další disky jsou připojené
+try:
+    with open('/proc/mounts', 'r') as f:
+        print("Můžu číst /proc/mounts!")
+except Exception as e:
+    print(f"Přístup k /proc/mounts zamítnut: {e}")
 
-print("--- SCAN KONEC ---")
+print("--- KONEC PRŮZKUMU ---")
