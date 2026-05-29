@@ -1,21 +1,20 @@
 import socket
+import os
 
-targets = [
-    ("10.233.45.143", 5432, "divadlomir-db"),
-    ("10.233.47.54", 443, "argocd-server"),
-    ("10.233.63.21", 5432, "vibeham-db")
-]
+print("--- START NETWORK SCAN ---")
 
-print("--- START CÍLENÉHO PENETRAČNÍHO TESTU ---")
+# Zkusíme se připojit na vnitřní IP Kubernetes, kterou jsi našel v logu
+target_ip = "10.96.0.1"
+ports = [443, 80, 2379, 6443] # Běžné porty pro ovládání sítě
 
-for ip, port, name in targets:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(2)
-    result = s.connect_ex((ip, port))
+for port in ports:
+    s = socket.socket(socket.socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1) # Nechceme čekat věčně
+    result = s.connect_ex((target_ip, port))
     if result == 0:
-        print(f"!!! KRITICKÝ PRŮNIK: Vidím {name} na {ip}:{port} !!!")
+        print(f"!!! NAŠEL JSEM OTEVŘENÝ PORT {port} na {target_ip} !!!")
     else:
-        print(f"Cíl {name} ({ip}) je nedostupný. (Kód: {result})")
+        print(f"Port {port} na {target_ip} je zavřený nebo blokovaný.")
     s.close()
 
-print("--- TEST DOKONČEN ---")
+print("--- SCAN KONEC ---")
