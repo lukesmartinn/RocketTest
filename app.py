@@ -1,24 +1,27 @@
 import socket
-import os
 
-print("--- START NETWORK SCAN ---")
+# Seznam vnitřních názvů, které jsme vytáhli z tvého kubectl výpisu
+# Formát v K8s je: název-služby.namespace.svc.cluster.local
+internal_names = [
+    "kubernetes.default.svc.cluster.local",
+    "divadlomir-db.divadlomir-osykora.svc.cluster.local",
+    "argocd-server.argocd.svc.cluster.local",
+    "vibeham-db.vibeham.svc.cluster.local",
+    "postgres.vibeham.svc.cluster.local",
+    "mirplay-db.divadlomir-osykora.svc.cluster.local"
+]
 
-# IP adresa brány
-target_ip = "10.96.0.1"
-ports = [443, 80, 2379, 6443]
+print("--- START DNS RECON SCAN ---")
 
-for port in ports:
+for name in internal_names:
     try:
-        # TADY BYLA CHYBA - opraveno na socket.AF_INET
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(1)
-        result = s.connect_ex((target_ip, port))
-        if result == 0:
-            print(f"!!! NAŠEL JSEM OTEVŘENÝ PORT {port} na {target_ip} !!!")
-        else:
-            print(f"Port {port} na {target_ip} je zavřený nebo blokovaný. (Kód: {result})")
-        s.close()
+        # Zkusíme přeložit název na IP adresu
+        ip = socket.gethostbyname(name)
+        print(f"!!! LEAK: Přeložil jsem {name} na IP {ip} !!!")
+    except socket.gaierror:
+        # Tohle je správné chování - aplikace by neměla vědět, že tyhle názvy existují
+        print(f"Název {name} je (správně) neznámý.")
     except Exception as e:
-        print(f"Chyba při testu portu {port}: {e}")
+        print(f"Chyba u {name}: {e}")
 
 print("--- SCAN KONEC ---")
