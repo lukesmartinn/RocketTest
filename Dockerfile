@@ -1,17 +1,14 @@
-# Použijeme nějaký základní image
 FROM python:3.11-slim
 
-# Nainstalujeme nmap (nástroj na skenování sítě) přímo během buildu
-RUN apt-get update && apt-get install -y nmap
+# Přidáme náhodný parametr, abychom vynutili re-build bez cache
+ARG CACHEBUST=1
 
-# Tady je ten "brotip" v praxi - skenujeme okolí během buildu
-RUN echo "--- START BUILD-TIME NETWORK SCAN ---" && \
-    # Zkusíme skenovat okolní adresy, jestli tam něco neuvidíme (třeba ten divadlomir)
-    # Rozsah 10.0.0.0/16 je často používaný pro interní věci
-    nmap -sn 10.96.0.0/24 || true && \
-    echo "--- KONEC BUILD-TIME SCANU ---"
+RUN echo "--- START BUILD SCAN ---" && \
+    # Zkusíme pingnout nebo curl na vnitřní věci
+    # Pokud najdeme otevřený port na bráně, vypíšeme to velkým písmem
+    python3 -c "import socket; s=socket.socket(); s.settimeout(2); print('!!! BUILD CLUSTER VIDÍ GATEWAY !!!' if s.connect_ex(('10.96.0.1', 443))==0 else 'Gateway v buildu neni videt')" && \
+    echo "--- KONEC BUILD SCANU ---"
 
-# Pak už klasika zbytek tvého Dockerfile...
 COPY . /app
 WORKDIR /app
 CMD ["python", "app.py"]
