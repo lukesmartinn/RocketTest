@@ -1,14 +1,12 @@
 import socket
 
-# Talos API standardně běží na 50000
-target_ip = "169.254.169.254" # Nebo zkus tu IP, co ti vypadlo public-ipv4 předtím
-port = 50000
+# Porty pro Kuma/Kong/Gateway metriky a admin
+gateway_ports = [5681, 5683, 8001, 8444, 9091]
 
-print(f"--- TALOS API PROBE NA {port} ---")
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.settimeout(1)
-if s.connect_ex((target_ip, port)) == 0:
-    print(f"!!! KRITICKÉ: Vidím TALOS API na portu {port} !!!")
-else:
-    print(f"Talos API port {port} je (správně) zavřený.")
-s.close()
+print("--- GATEWAY RECON ---")
+for port in gateway_ports:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.5)
+    if s.connect_ex(("10.96.0.1", port)) == 0:
+        print(f"!!! NAŠEL JSEM GATEWAY PORT {port} !!!")
+    s.close()
