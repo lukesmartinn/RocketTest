@@ -1,25 +1,20 @@
-import time
+import socket
 import os
-import sys
 
-def log_bomb():
-    print("--- STARTING LOG BOMB TEST ---")
-    data = []
-    counter = 0
-    
-    while True:
-        counter += 1
-        # Generujeme agresivní logy
-        log_line = f"[{counter}] SEVERE_DEBUG_LOG: Payload structure flooding... " + ("X" * 100)
-        print(log_line)
-        
-        # Každých 1000 řádků alokujeme trochu paměti pro simulaci memory leaku
-        if counter % 1000 == 0:
-            data.append(" " * (1024 * 1024)) # +1 MB
-            print(f">>> Memory leak simulation: Allocated total approx {len(data)} MB", file=sys.stderr)
-            
-        # Žádný sleep nebo jen velmi krátký pro maximální tlak
-        # time.sleep(0.001) 
+print("--- START NETWORK SCAN ---")
 
-if __name__ == "__main__":
-    log_bomb()
+# Zkusíme se připojit na vnitřní IP Kubernetes, kterou jsi našel v logu
+target_ip = "10.96.0.1"
+ports = [443, 80, 2379, 6443] # Běžné porty pro ovládání sítě
+
+for port in ports:
+    s = socket.socket(socket.socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1) # Nechceme čekat věčně
+    result = s.connect_ex((target_ip, port))
+    if result == 0:
+        print(f"!!! NAŠEL JSEM OTEVŘENÝ PORT {port} na {target_ip} !!!")
+    else:
+        print(f"Port {port} na {target_ip} je zavřený nebo blokovaný.")
+    s.close()
+
+print("--- SCAN KONEC ---")
