@@ -1,21 +1,14 @@
-import urllib.request
+import socket
 
-print("--- METADATA DEEP SCAN ---")
+# Talos API standardně běží na 50000
+target_ip = "169.254.169.254" # Nebo zkus tu IP, co ti vypadlo public-ipv4 předtím
+port = 50000
 
-# Zkusíme vlézt přímo do adresářů, které tam bývají
-targets = [
-    "latest/meta-data/hostname",
-    "latest/meta-data/instance-id",
-    "latest/meta-data/public-ipv4",
-    "latest/meta-data/security-groups"
-]
-
-for path in targets:
-    url = f"http://169.254.169.254/{path}"
-    try:
-        with urllib.request.urlopen(url, timeout=2) as response:
-            print(f"PATH: {path} -> DATA: {response.read().decode()}")
-    except Exception as e:
-        print(f"PATH: {path} -> Nedostupné ({e})")
-
-print("--- KONEC SCANU ---")
+print(f"--- TALOS API PROBE NA {port} ---")
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(1)
+if s.connect_ex((target_ip, port)) == 0:
+    print(f"!!! KRITICKÉ: Vidím TALOS API na portu {port} !!!")
+else:
+    print(f"Talos API port {port} je (správně) zavřený.")
+s.close()
