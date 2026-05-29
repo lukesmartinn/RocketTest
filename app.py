@@ -1,24 +1,38 @@
-import os
+import socket
 
-print("--- KONTROLA IZOLACE PROCESŮ ---")
+def check_redis(ip):
+    print(f"Zkouším Redis na {ip}...")
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1)
+    try:
+        s.connect((ip, 6379))
+        # Zkusíme poslat příkaz PING (standardní Redis test)
+        s.send(b"PING\r\n")
+        response = s.recv(1024)
+        print(f"!!! REDIS ODPOVĚDĚL NA {ip}: {response.decode().strip()} !!!")
+        
+        # Zkusíme INFO (vysype to hromadu informací o serveru)
+        s.send(b"INFO\r\n")
+        info = s.recv(1024)
+        print(f"INFO výstřižek: {info.decode()[:200]}...")
+    except Exception as e:
+        print(f"Redis na {ip} nedostupný: {e}")
+    finally:
+        s.close()
 
+print("--- REDIS SCAN ---")
+
+# 1. Zkusíme localhost (jestli neběží v podu)
+check_redis("127.0.0.1")
+
+# 2. Zkusíme vnitřní Kubernetes službu (pokud ji nabízejí jako "redis")
 try:
-    # Vypíšeme všechna PID (čísla procesů) ve složce /proc
-    pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
-    print(f"Vidím celkem {len(pids)} běžících procesů v systému.")
-    
-    if len(pids) > 10:
-        print("!!! DIVNÉ: Vidím podezřele hodně procesů, to nevypadá jako izolovaný kontejner !!!")
-        # Vypíšeme prvních pár, ať víme, co jsou zač
-        for pid in pids[:10]:
-            try:
-                with open(f'/proc/{pid}/comm', 'r') as f:
-                    print(f"PID {pid}: {f.read().strip()}")
-            except:
-                pass
-    else:
-        print(f"Vidím jen {len(pids)} procesy, to vypadá v pořádku.")
-except Exception as e:
-    print(f"Nemůžu číst /proc: {e}")
+    redis_ip = socket.gethostbyname("redis")
+    check_redis(redis_ip)
+except:
+    print("Služba s názvem 'redis' nebyla nalezena přes DNS.")
 
-print("--- KONEC TESTU ---")
+# 3. Zkusíme "bránu" (často tam bývají sdílené služby)
+check_redis("10.96.0.1")
+
+print("--- KONEC SCANU ---")
