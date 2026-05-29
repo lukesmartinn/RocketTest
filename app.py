@@ -1,38 +1,32 @@
 import socket
 
-def check_redis(ip):
-    print(f"Zkouším Redis na {ip}...")
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(1)
-    try:
-        s.connect((ip, 6379))
-        # Zkusíme poslat příkaz PING (standardní Redis test)
-        s.send(b"PING\r\n")
-        response = s.recv(1024)
-        print(f"!!! REDIS ODPOVĚDĚL NA {ip}: {response.decode().strip()} !!!")
-        
-        # Zkusíme INFO (vysype to hromadu informací o serveru)
-        s.send(b"INFO\r\n")
-        info = s.recv(1024)
-        print(f"INFO výstřižek: {info.decode()[:200]}...")
-    except Exception as e:
-        print(f"Redis na {ip} nedostupný: {e}")
-    finally:
-        s.close()
+# Seznam věcí, co by v cloudu mohly běžet
+targets = [
+    "redis", "redis-master", "redis-slave", 
+    "postgres", "postgresql", "mysql", "mariadb", 
+    "mongodb", "rabbitmq", "valkey"
+]
 
-print("--- REDIS SCAN ---")
+# Zkusíme i standardní namespaces
+namespaces = ["default", "redis", "database", "infra"]
 
-# 1. Zkusíme localhost (jestli neběží v podu)
-check_redis("127.0.0.1")
+print("--- DEEP DNS RECON ---")
 
-# 2. Zkusíme vnitřní Kubernetes službu (pokud ji nabízejí jako "redis")
-try:
-    redis_ip = socket.gethostbyname("redis")
-    check_redis(redis_ip)
-except:
-    print("Služba s názvem 'redis' nebyla nalezena přes DNS.")
+for target in targets:
+    for ns in namespaces:
+        fqdn = f"{target}.{ns}.svc.cluster.local"
+        try:
+            ip = socket.gethostbyname(fqdn)
+            print(f"!!! NAŠEL JSEM SLUŽBU: {fqdn} -> {ip}")
+            
+            # Pokud to najde Redis, zkusíme rovnou port 6379
+            if "redis" in target:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(0.5)
+                if s.connect_ex((ip, 6379)) == 0:
+                    print(f"  [+] Port 6379 je OTEVŘENÝ na {ip}")
+                s.close()
+        except:
+            continue
 
-# 3. Zkusíme "bránu" (často tam bývají sdílené služby)
-check_redis("10.96.0.1")
-
-print("--- KONEC SCANU ---")
+print("--- SCAN DOKONČEN ---")
