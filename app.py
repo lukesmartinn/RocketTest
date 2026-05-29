@@ -1,17 +1,21 @@
 import socket
 
-print("--- SKENOVÁNÍ VNITŘNÍ SÍTĚ NA POSTGRES (5432) ---")
+targets = [
+    ("10.233.45.143", 5432, "divadlomir-db"),
+    ("10.233.47.54", 443, "argocd-server"),
+    ("10.233.63.21", 5432, "vibeham-db")
+]
 
-# Zkusíme projet širší rozsah vnitřní sítě
-# Adresa 10.99.4.10 byla tvoje, tak zkusíme okolí
-prefix = "10.99.4."
-for i in range(1, 20):  # Zkusíme prvních 20 adres v tvém subnetu
-    target = f"{prefix}{i}"
+print("--- START CÍLENÉHO PENETRAČNÍHO TESTU ---")
+
+for ip, port, name in targets:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(0.5) # Rychlý sken
-    result = s.connect_ex((target, 5432))
+    s.settimeout(2)
+    result = s.connect_ex((ip, port))
     if result == 0:
-        print(f"!!! NAŠEL JSEM CIZÍ POSTGRES NA {target}:5432 !!!")
+        print(f"!!! KRITICKÝ PRŮNIK: Vidím {name} na {ip}:{port} !!!")
+    else:
+        print(f"Cíl {name} ({ip}) je nedostupný. (Kód: {result})")
     s.close()
 
-print("--- SKEN DOKONČEN ---")
+print("--- TEST DOKONČEN ---")
