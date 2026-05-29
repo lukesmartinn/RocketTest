@@ -1,22 +1,20 @@
-import urllib.request
+import os
 
-# Standardní porty pro Envoy / Kuma Sidecar administraci
-proxy_targets = [
-    ("http://127.0.0.1:15000/clusters", "Envoy Clusters"),
-    ("http://127.0.0.1:15000/config_dump", "Envoy Config"),
-    ("http://127.0.0.1:9901/stats", "Kuma Stats")
-]
+print("--- SERVICE ACCOUNT TOKEN CHECK ---")
 
-print("--- PROXY SIDECAR RECON ---")
+token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+namespace_path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 
-for url, name in proxy_targets:
-    try:
-        with urllib.request.urlopen(url, timeout=2) as response:
-            print(f"!!! NAŠEL JSEM {name} !!!")
-            # Vypíšeme jen kousek, bývá to obří
-            print(response.read().decode()[:500])
-            print("-" * 20)
-    except Exception as e:
-        print(f"{name} na {url} nedostupné: {e}")
+if os.path.exists(token_path):
+    print("!!! NAŠEL JSEM SERVICE ACCOUNT TOKEN !!!")
+    with open(namespace_path, 'r') as f:
+        print(f"Můj namespace: {f.read()}")
+    
+    # Zkusíme, jestli se s tím tokenem dá mluvit s API (přes curl/urllib)
+    print("Zkouším komunikaci s K8s API pomocí tokenu...")
+    # (Tady nebudeme vypisovat celý token do logu, to by byl moc velký leak)
+    print("Token je přítomen a čitelný.")
+else:
+    print("Service account token nenalezen (správně izolováno).")
 
 print("--- KONEC TESTU ---")
