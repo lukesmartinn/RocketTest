@@ -1,24 +1,27 @@
-import sys
-import datetime
-import os
+import random
+import time
 
-print("--- START JEDNODUCHÉHO TESTU ---")
+# Seznam náhodných hlášek pro odlehčení
+quotes = [
+    "Kóduj, jako by ten, kdo ho po tobě bude spravovat, byl násilnický psychopat, který ví, kde bydlíš.",
+    "Hardware je to, do čeho můžeš kopnout, když přestane fungovat software.",
+    "Předpoklad je matka všech průšvihů.",
+    "Nefunguje to? Zkusil jsi to vypnout a znova zapnout?",
+    "V mém počítači to fungovalo normálně..."
+]
 
-# Vypíšeme aktuální čas
-now = datetime.datetime.now()
-print(f"Čas spuštění: {now.strftime('%Y-%m-%d %H:%M:%S')}")
+print("="*40)
+print("   VÍTEJ V GENERÁTORU NÁHODNÉHO CHAOSU   ")
+print("="*40)
 
-# Vypíšeme verzi Pythonu
-print(f"Verze Pythonu: {sys.version}")
+# Simulace nějaké "práce"
+for i in range(1, 4):
+    print(f"Probíhá hloubková analýza vesmíru... {i*33}%")
+    time.sleep(0.5)
 
-# Zkusíme vypsat uživatele, pod kterým to běží
-try:
-    user = os.getlogin()
-except:
-    user = "neznámý (pravděpodobně root v kontejneru)"
-print(f"Aplikace běží pod uživatelem: {user}")
+print("\nVýsledek dnešní věštby:")
+print(f">>> {random.choice(quotes)} <<<")
 
-print("\nZpráva pro tebe:")
-print("Všechno šlape, text se vypisuje správně. GJ!")
-
-print("--- KONEC TESTU ---")
+print("\n" + "="*40)
+print("         TEST ÚSPĚŠNĚ DOKONČEN          ")
+print("="*40)
