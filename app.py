@@ -1,22 +1,16 @@
-import os
+import urllib.request
+import ssl
 
-print("--- PRŮZKUM SOUBORŮ ---")
+print("--- CURL TEST NA 10.96.0.1 ---")
+context = ssl._create_unverified_context()
 
-# Zkusíme se podívat, jestli vidíme seznam všech uživatelů v systému
 try:
-    with open('/etc/passwd', 'r') as f:
-        # Vypíšeme jen první dva řádky, ať to není kilometr dlouhý
-        obsah = f.readlines()
-        print("Můžu číst /etc/passwd!")
-        print(f"Začátek souboru: {obsah[:2]}")
+    # Zkusíme zjistit verzi API serveru
+    req = urllib.request.Request("https://10.96.0.1:443/version")
+    with urllib.request.urlopen(req, context=context, timeout=2) as response:
+        print(f"STATUS: {response.getcode()}")
+        print(f"DATA: {response.read().decode()}")
 except Exception as e:
-    print(f"Přístup k /etc/passwd zamítnut: {e}")
+    print(f"CHYBA: {e}")
 
-# Zkusíme, jestli vidíme, jaké další disky jsou připojené
-try:
-    with open('/proc/mounts', 'r') as f:
-        print("Můžu číst /proc/mounts!")
-except Exception as e:
-    print(f"Přístup k /proc/mounts zamítnut: {e}")
-
-print("--- KONEC PRŮZKUMU ---")
+print("--- KONEC TESTU ---")
