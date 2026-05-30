@@ -70,5 +70,19 @@ def auth_strict():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/db-info")
+def db_info():
+    try:
+        r = get_redis()
+        keys = r.keys("*")
+        info = r.info("server")
+        return jsonify({
+            "keys": [k.decode() for k in keys],
+            "version": info.get("redis_version"),
+            "uptime_seconds": info.get("uptime_in_seconds"),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 3000)))
