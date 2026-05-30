@@ -1,26 +1,25 @@
 # app.py
-import os, time, socket, redis
+import os, time, redis
 from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-def get_redis():
+def get_redis(password=None):
     return redis.Redis(
         host=os.environ.get("REDIS_HOST", "localhost"),
         port=int(os.environ.get("REDIS_PORT", 6379)),
+        password=password,
         socket_connect_timeout=2
     )
 
 @app.route("/")
 def index():
-    return jsonify({"status": "ok", "tests": ["/ping", "/rw", "/latency", "/auth"]})
+    return jsonify({"tests": ["/ping", "/rw", "/latency", "/auth", "/auth-strict"]})
 
 @app.route("/ping")
 def ping():
     try:
-        r = get_redis()
-        result = r.ping()
-        return jsonify({"ping": result})
+        return jsonify({"ping": get_redis().ping()})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -54,12 +53,20 @@ def latency():
 @app.route("/auth")
 def auth_check():
     try:
-        r = get_redis()
-        # Zkusí připojení bez hesla – pokud projde, DB nemá auth
-        r.ping()
+        get_redis().ping()
         return jsonify({"auth_required": False, "note": "Connected without password"})
     except redis.AuthenticationError:
         return jsonify({"auth_required": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/auth-strict")
+def auth_strict():
+    try:
+        get_redis(password="wrong_password_xyz").ping()
+        return jsonify({"auth_required": False, "note": "PING succeeded with wrong password"})
+    except redis.AuthenticationError as e:
+        return jsonify({"auth_required": True, "note": str(e)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
