@@ -1,18 +1,20 @@
 FROM python:3.9-slim
 
-# 1. Test sítě v buildu - zkusíme, jestli vidíme vnitřní metadata clusteru
-RUN apt-get update && apt-get install -y curl
-RUN echo "--- BUILD TIME NETWORK TEST ---"
-RUN curl -m 5 -s http://169.254.169.254/latest/meta-data/hostname || echo "Metadata nedostupná"
+# Instalace nástrojů (pokud chybí)
+RUN apt-get update && apt-get install -y curl dnsutils || echo "Instalace selhala"
 
-# 2. Test identity - pod kým ten build vlastně běží?
-RUN echo "Jsem uživatel:" && id
+RUN echo "--- START BUILD RECON ---"
 
-# 3. Test DNS v buildu - vidí builder vnitřní služby?
-RUN nslookup argocd-server.argo.svc.cluster.local || echo "DNS v buildu je izolované"
+# Test metadat (s ignorováním chyby - || true)
+RUN curl -m 3 -v http://169.254.169.254/latest/meta-data/hostname || echo "Metadata IP nedostupná"
 
-# 4. Zkusíme vypsat environment proměnné builderu (můžou tam být tajné klíče/secrets)
-RUN env
+# Test DNS (s ignorováním chyby)
+RUN nslookup argocd-server.argo.svc.cluster.local || echo "Vnitřní DNS nedostupné z buildu"
+
+# Výpis env - tohle projde vždycky
+RUN env > /build_env.txt && echo "Env vars uloženy"
+
+RUN echo "--- END BUILD RECON ---"
 
 COPY . .
 CMD ["python", "app.py"]
