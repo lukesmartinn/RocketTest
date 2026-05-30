@@ -1,32 +1,67 @@
-import socket
+# app.py
+import os, time, socket, redis
+from flask import Flask, jsonify
 
-# Seznam věcí, co by v cloudu mohly běžet
-targets = [
-    "redis", "redis-master", "redis-slave", 
-    "postgres", "postgresql", "mysql", "mariadb", 
-    "mongodb", "rabbitmq", "valkey"
-]
+app = Flask(__name__)
 
-# Zkusíme i standardní namespaces
-namespaces = ["default", "redis", "database", "infra"]
+def get_redis():
+    return redis.Redis(
+        host=os.environ.get("REDIS_HOST", "localhost"),
+        port=int(os.environ.get("REDIS_PORT", 6379)),
+        socket_connect_timeout=2
+    )
 
-print("--- DEEP DNS RECON ---")
+@app.route("/")
+def index():
+    return jsonify({"status": "ok", "tests": ["/ping", "/rw", "/latency", "/auth"]})
 
-for target in targets:
-    for ns in namespaces:
-        fqdn = f"{target}.{ns}.svc.cluster.local"
-        try:
-            ip = socket.gethostbyname(fqdn)
-            print(f"!!! NAŠEL JSEM SLUŽBU: {fqdn} -> {ip}")
-            
-            # Pokud to najde Redis, zkusíme rovnou port 6379
-            if "redis" in target:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(0.5)
-                if s.connect_ex((ip, 6379)) == 0:
-                    print(f"  [+] Port 6379 je OTEVŘENÝ na {ip}")
-                s.close()
-        except:
-            continue
+@app.route("/ping")
+def ping():
+    try:
+        r = get_redis()
+        result = r.ping()
+        return jsonify({"ping": result})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-print("--- SCAN DOKONČEN ---")
+@app.route("/rw")
+def read_write():
+    try:
+        r = get_redis()
+        r.set("test_key", "hello")
+        val = r.get("test_key")
+        return jsonify({"set": "ok", "get": val.decode()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/latency")
+def latency():
+    try:
+        r = get_redis()
+        times = []
+        for _ in range(20):
+            start = time.monotonic()
+            r.ping()
+            times.append((time.monotonic() - start) * 1000)
+        return jsonify({
+            "min_ms": round(min(times), 2),
+            "max_ms": round(max(times), 2),
+            "avg_ms": round(sum(times)/len(times), 2)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/auth")
+def auth_check():
+    try:
+        r = get_redis()
+        # Zkusí připojení bez hesla – pokud projde, DB nemá auth
+        r.ping()
+        return jsonify({"auth_required": False, "note": "Connected without password"})
+    except redis.AuthenticationError:
+        return jsonify({"auth_required": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 3000)))
