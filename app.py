@@ -1,16 +1,11 @@
-import os
+import socket
 
-def read_build_file(name):
-    print(f"--- VÝSLEDEK Z BUILDU: {name} ---")
-    if os.path.exists(name):
-        with open(name, 'r') as f:
-            print(f.read())
-    else:
-        print("Soubor nenalezen.")
+def check_port(ip, port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1)
+    result = s.connect_ex((ip, port))
+    s.close()
+    return result == 0
 
-# Přečteme to, co jsme si v buildu připravili
-read_build_file("/build_metadata.txt")
-read_build_file("/build_dns.txt")
-read_build_file("/build_env.txt")
-
-print("--- RUNTIME IS READY ---")
+print(f"--- RUNTIME NETWORK CHECK ---")
+print(f"Je OTEL port 44725 dostupný i teď? {'ANO' if check_port('127.0.0.1', 44725) else 'NE'}")
